@@ -6,7 +6,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "vapi-eoc",
-        "responseMode": "lastNode",
+        "responseMode": "onReceived",
         "options": {}
       },
       "id": "wfb_hook",
@@ -21,7 +21,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const b = items[0].json.body || items[0].json || {};\nconst msg = b.message || {};\nconst sd = (msg.analysis && msg.analysis.structuredData) || {};\nconst phone = (msg.customer && msg.customer.number) || sd.phone || '';\nreturn [{ json: {\n  phone,\n  firstName: sd.firstName || '',\n  lastName: sd.lastName || '',\n  email: sd.email || '',\n  transcript: msg.transcript || '',\n  summary: msg.summary || '',\n  intent: sd.intent || ''\n} }];"
+        "jsCode": "const b = items[0].json.body || items[0].json || {};\nconst msg = b.message || {};\nif (msg.type && msg.type !== 'end-of-call-report') { return []; }\nconst sd = (msg.analysis && msg.analysis.structuredData) || {};\nconst phone = (msg.customer && msg.customer.number) || sd.phone || '';\nreturn [{ json: {\n  phone,\n  firstName: sd.firstName || '',\n  lastName: sd.lastName || '',\n  email: sd.email || '',\n  transcript: msg.transcript || '',\n  summary: msg.summary || '',\n  intent: sd.intent || ''\n} }];"
       },
       "id": "wfb_extract",
       "name": "Extract Call Data",

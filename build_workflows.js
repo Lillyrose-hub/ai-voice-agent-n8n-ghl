@@ -2,9 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const outDir = path.join(__dirname, 'workflows');
 
-function webhook(id, name, pathSeg, x) {
+function webhook(id, name, pathSeg, x, responseMode = 'lastNode') {
   return {
-    parameters: { httpMethod: 'POST', path: pathSeg, responseMode: 'lastNode', options: {} },
+    parameters: { httpMethod: 'POST', path: pathSeg, responseMode, options: {} },
     id, name, type: 'n8n-nodes-base.webhook', typeVersion: 2,
     position: [x, 0], webhookId: id,
   };
@@ -46,6 +46,7 @@ function chain(nodes) {
 const mapTool = `
 const b = items[0].json.body || items[0].json || {};
 const msg = b.message || {};
+const caller = (msg.call && msg.call.customer && msg.call.customer.number) || (msg.customer && msg.customer.number) || null;
 let name, args = {}, toolCallId = null;
 if (Array.isArray(msg.toolCalls) && msg.toolCalls.length) {
   const tc = msg.toolCalls[0];
@@ -60,7 +61,7 @@ if (Array.isArray(msg.toolCalls) && msg.toolCalls.length) {
 }
 let op = null, payload = {};
 if (name === 'checkAvailability') { op = 'getFreeSlots'; payload = { calendarId: args.calendarId || 'cal_default', date: args.date }; }
-else if (name === 'bookAppointment') { op = 'bookAppointment'; payload = { calendarId: args.calendarId || 'cal_default', slot: args.slot, contactId: args.contactId || null }; }
+else if (name === 'bookAppointment') { const slot = args.slot || (args.date && args.time ? (args.date + 'T' + args.time + ':00') : null); op = 'bookAppointment'; payload = { calendarId: args.calendarId || 'cal_default', slot: slot, contactId: args.contactId || caller || null }; }
 return [{ json: { toolCallId, toolName: name || null, op, payload } }];
 `.trim();
 
@@ -97,6 +98,7 @@ const wfa = {
 const extract = `
 const b = items[0].json.body || items[0].json || {};
 const msg = b.message || {};
+if (msg.type && msg.type !== 'end-of-call-report') { return []; }
 const sd = (msg.analysis && msg.analysis.structuredData) || {};
 const phone = (msg.customer && msg.customer.number) || sd.phone || '';
 return [{ json: {
@@ -143,7 +145,7 @@ return [{ json: { status: 'ok', contactId: (c.contact && c.contact.id) || null }
 `.trim();
 
 const wfbNodes = [
-  webhook('wfb_hook', 'Vapi EOC In', 'vapi-eoc', -520),
+  webhook('wfb_hook', 'Vapi EOC In', 'vapi-eoc', -520, 'onReceived'),
   code('wfb_extract', 'Extract Call Data', extract, -300),
   code('wfb_pu', 'Prep Upsert', prepUpsert, -80),
   callSub('wfb_upsert', 'Upsert Contact', 140),
