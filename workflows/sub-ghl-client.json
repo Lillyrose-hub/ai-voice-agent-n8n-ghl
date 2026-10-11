@@ -1,0 +1,61 @@
+{
+  "id": "SUBghlClient0001",
+  "name": "SUB GHL Client",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f73a8826-2e65-4fa6-b0e5-1f1011a0c9b8",
+      "name": "When Called",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [-120, 0]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1",
+              "name": "baseUrl",
+              "type": "string",
+              "value": "http://localhost:5678/webhook/mock-ghl"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "5d0cbbd3-bdc4-4799-b61d-098344f7b3d4",
+      "name": "Set GHL Base URL",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [100, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.baseUrl }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"op\": $json.op, \"payload\": $json.payload } }}",
+        "options": {}
+      },
+      "id": "8d240fbd-40cc-4b1a-82ff-0afc235d674f",
+      "name": "Call GHL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [320, 0]
+    }
+  ],
+  "connections": {
+    "When Called": {
+      "main": [[{ "node": "Set GHL Base URL", "type": "main", "index": 0 }]]
+    },
+    "Set GHL Base URL": {
+      "main": [[{ "node": "Call GHL", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

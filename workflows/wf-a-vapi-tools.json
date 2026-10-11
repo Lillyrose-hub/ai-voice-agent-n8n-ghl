@@ -1,0 +1,108 @@
+{
+  "id": "WFAvapiTools001",
+  "name": "WF-A Vapi Tools (mid-call)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi-tools",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wfa_hook",
+      "name": "Vapi Tools In",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -300,
+        0
+      ],
+      "webhookId": "wfa_hook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = items[0].json.body || items[0].json || {};\nconst msg = b.message || {};\nlet name, args = {}, toolCallId = null;\nif (Array.isArray(msg.toolCalls) && msg.toolCalls.length) {\n  const tc = msg.toolCalls[0];\n  toolCallId = tc.id;\n  name = tc.function && tc.function.name;\n  args = (tc.function && tc.function.arguments) || {};\n  if (typeof args === 'string') { try { args = JSON.parse(args); } catch (e) { args = {}; } }\n} else if (msg.functionCall) {\n  name = msg.functionCall.name;\n  args = msg.functionCall.parameters || {};\n  toolCallId = msg.functionCall.id || 'legacy';\n}\nlet op = null, payload = {};\nif (name === 'checkAvailability') { op = 'getFreeSlots'; payload = { calendarId: args.calendarId || 'cal_default', date: args.date }; }\nelse if (name === 'bookAppointment') { op = 'bookAppointment'; payload = { calendarId: args.calendarId || 'cal_default', slot: args.slot, contactId: args.contactId || null }; }\nreturn [{ json: { toolCallId, toolName: name || null, op, payload } }];"
+      },
+      "id": "wfa_map",
+      "name": "Map Tool",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SUBghlClient0001",
+          "mode": "id",
+          "cachedResultName": "SUB GHL Client"
+        },
+        "options": {}
+      },
+      "id": "wfa_sub",
+      "name": "Call SUB",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        140,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const m = $('Map Tool').first().json;\nconst data = items[0].json || {};\nlet result;\nif (m.toolName === 'checkAvailability') {\n  const slots = data.slots || [];\n  result = slots.length ? ('Available times: ' + slots.map(s => s.slice(11, 16)).join(', ')) : 'No open times that day.';\n} else if (m.toolName === 'bookAppointment') {\n  if (data.appointment) result = 'Booked for ' + data.appointment.slot.slice(0, 16).replace('T', ' at ') + '.';\n  else if (data.error === 'slot_taken') result = 'Sorry, that time was just taken.';\n  else result = 'I could not book that.';\n} else {\n  result = 'Sorry, I did not understand that request.';\n}\nreturn [{ json: { results: [{ toolCallId: m.toolCallId, result }] } }];"
+      },
+      "id": "wfa_fmt",
+      "name": "Format Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Vapi Tools In": {
+      "main": [
+        [
+          {
+            "node": "Map Tool",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Map Tool": {
+      "main": [
+        [
+          {
+            "node": "Call SUB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call SUB": {
+      "main": [
+        [
+          {
+            "node": "Format Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

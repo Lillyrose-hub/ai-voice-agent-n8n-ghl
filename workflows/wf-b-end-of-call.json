@@ -1,0 +1,294 @@
+{
+  "id": "WFBendOfCall001",
+  "name": "WF-B End-of-call Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vapi-eoc",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wfb_hook",
+      "name": "Vapi EOC In",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        0
+      ],
+      "webhookId": "wfb_hook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = items[0].json.body || items[0].json || {};\nconst msg = b.message || {};\nconst sd = (msg.analysis && msg.analysis.structuredData) || {};\nconst phone = (msg.customer && msg.customer.number) || sd.phone || '';\nreturn [{ json: {\n  phone,\n  firstName: sd.firstName || '',\n  lastName: sd.lastName || '',\n  email: sd.email || '',\n  transcript: msg.transcript || '',\n  summary: msg.summary || '',\n  intent: sd.intent || ''\n} }];"
+      },
+      "id": "wfb_extract",
+      "name": "Extract Call Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -300,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $('Extract Call Data').first().json;\nreturn [{ json: { op: 'upsertContact', payload: { firstName: e.firstName, lastName: e.lastName, phone: e.phone, email: e.email } } }];"
+      },
+      "id": "wfb_pu",
+      "name": "Prep Upsert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SUBghlClient0001",
+          "mode": "id",
+          "cachedResultName": "SUB GHL Client"
+        },
+        "options": {}
+      },
+      "id": "wfb_upsert",
+      "name": "Upsert Contact",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        140,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $('Extract Call Data').first().json;\nconst c = $('Upsert Contact').first().json;\nconst id = c.contact && c.contact.id;\nconst body = 'Call summary: ' + (e.summary || '(none)') + '\\n\\nTranscript:\\n' + (e.transcript || '(none)');\nreturn [{ json: { op: 'addNote', payload: { contactId: id, body } } }];"
+      },
+      "id": "wfb_pn",
+      "name": "Prep Note",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        360,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SUBghlClient0001",
+          "mode": "id",
+          "cachedResultName": "SUB GHL Client"
+        },
+        "options": {}
+      },
+      "id": "wfb_note",
+      "name": "Add Note",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        580,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $('Extract Call Data').first().json;\nconst c = $('Upsert Contact').first().json;\nconst id = c.contact && c.contact.id;\nconst nm = ((e.firstName || '') + ' ' + (e.lastName || '')).trim() || 'Inbound caller';\nreturn [{ json: { op: 'createOpportunity', payload: { contactId: id, name: nm + ' - ' + (e.intent || 'inquiry'), stage: 'new' } } }];"
+      },
+      "id": "wfb_po",
+      "name": "Prep Opportunity",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SUBghlClient0001",
+          "mode": "id",
+          "cachedResultName": "SUB GHL Client"
+        },
+        "options": {}
+      },
+      "id": "wfb_opp",
+      "name": "Create Opportunity",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1020,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Upsert Contact').first().json;\nconst id = c.contact && c.contact.id;\nreturn [{ json: { op: 'sendMessage', payload: { contactId: id, channel: 'sms', message: 'Thanks for calling! We logged your request and will follow up shortly.' } } }];"
+      },
+      "id": "wfb_pm",
+      "name": "Prep Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SUBghlClient0001",
+          "mode": "id",
+          "cachedResultName": "SUB GHL Client"
+        },
+        "options": {}
+      },
+      "id": "wfb_msg",
+      "name": "Send Message",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        1460,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const c = $('Upsert Contact').first().json;\nreturn [{ json: { status: 'ok', contactId: (c.contact && c.contact.id) || null } }];"
+      },
+      "id": "wfb_sum",
+      "name": "Done",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Vapi EOC In": {
+      "main": [
+        [
+          {
+            "node": "Extract Call Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Call Data": {
+      "main": [
+        [
+          {
+            "node": "Prep Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Upsert": {
+      "main": [
+        [
+          {
+            "node": "Upsert Contact",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Contact": {
+      "main": [
+        [
+          {
+            "node": "Prep Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Note": {
+      "main": [
+        [
+          {
+            "node": "Add Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Note": {
+      "main": [
+        [
+          {
+            "node": "Prep Opportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Opportunity": {
+      "main": [
+        [
+          {
+            "node": "Create Opportunity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Opportunity": {
+      "main": [
+        [
+          {
+            "node": "Prep Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Message": {
+      "main": [
+        [
+          {
+            "node": "Send Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Message": {
+      "main": [
+        [
+          {
+            "node": "Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

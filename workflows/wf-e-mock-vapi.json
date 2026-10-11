@@ -1,0 +1,54 @@
+{
+  "id": "WFEmockVapi00001",
+  "name": "WF-E Mock Vapi API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mock-vapi-call",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wfe_hook",
+      "name": "Mock Vapi In",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -120,
+        0
+      ],
+      "webhookId": "wfe_hook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = items[0].json.body || items[0].json || {};\nconst id = 'vapi_call_' + Math.random().toString(36).slice(2, 10);\nreturn [{ json: { id, status: 'queued', echo: { customer: b.customer || null, phoneNumberId: b.phoneNumberId || null } } }];"
+      },
+      "id": "wfe_create",
+      "name": "Create Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        100,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Mock Vapi In": {
+      "main": [
+        [
+          {
+            "node": "Create Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

@@ -1,0 +1,283 @@
+{
+  "id": "WFFsetupTbls001",
+  "name": "WF-F Setup Data Tables",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "setup-tables",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "f_hook_1",
+      "name": "Setup In",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        0
+      ],
+      "webhookId": "f_wh_2"
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "ghl_contacts",
+        "columns": {
+          "column": [
+            {
+              "name": "phone",
+              "type": "string"
+            },
+            {
+              "name": "firstName",
+              "type": "string"
+            },
+            {
+              "name": "lastName",
+              "type": "string"
+            },
+            {
+              "name": "email",
+              "type": "string"
+            },
+            {
+              "name": "intent",
+              "type": "string"
+            },
+            {
+              "name": "outboundStatus",
+              "type": "string"
+            },
+            {
+              "name": "lastCallId",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "f_ct_3",
+      "name": "Create contacts",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -380,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "ghl_notes",
+        "columns": {
+          "column": [
+            {
+              "name": "contactId",
+              "type": "string"
+            },
+            {
+              "name": "body",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "f_ct_4",
+      "name": "Create notes",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "ghl_appointments",
+        "columns": {
+          "column": [
+            {
+              "name": "calendarId",
+              "type": "string"
+            },
+            {
+              "name": "slot",
+              "type": "string"
+            },
+            {
+              "name": "contactId",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "f_ct_5",
+      "name": "Create appointments",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        60,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "ghl_opportunities",
+        "columns": {
+          "column": [
+            {
+              "name": "contactId",
+              "type": "string"
+            },
+            {
+              "name": "pipelineId",
+              "type": "string"
+            },
+            {
+              "name": "stage",
+              "type": "string"
+            },
+            {
+              "name": "oppName",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "f_ct_6",
+      "name": "Create opportunities",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "ghl_messages",
+        "columns": {
+          "column": [
+            {
+              "name": "contactId",
+              "type": "string"
+            },
+            {
+              "name": "channel",
+              "type": "string"
+            },
+            {
+              "name": "message",
+              "type": "string"
+            },
+            {
+              "name": "status",
+              "type": "string"
+            },
+            {
+              "name": "sentAt",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "f_ct_7",
+      "name": "Create messages",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        500,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Setup In": {
+      "main": [
+        [
+          {
+            "node": "Create contacts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create contacts": {
+      "main": [
+        [
+          {
+            "node": "Create notes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create notes": {
+      "main": [
+        [
+          {
+            "node": "Create appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create appointments": {
+      "main": [
+        [
+          {
+            "node": "Create opportunities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create opportunities": {
+      "main": [
+        [
+          {
+            "node": "Create messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

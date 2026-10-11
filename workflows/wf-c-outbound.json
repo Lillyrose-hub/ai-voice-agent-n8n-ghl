@@ -1,0 +1,239 @@
+{
+  "id": "WFCoutbound00001",
+  "name": "WF-C Outbound",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "run-outbound",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wfc_hook",
+      "name": "Run Outbound",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -820,
+        0
+      ],
+      "webhookId": "wfc_hook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { op: 'getLeadsToCall', payload: {} } }];"
+      },
+      "id": "wfc_pg",
+      "name": "Prep Get Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SUBghlClient0001",
+          "mode": "id",
+          "cachedResultName": "SUB GHL Client"
+        },
+        "options": {}
+      },
+      "id": "wfc_get",
+      "name": "Get Leads",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        -380,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const leads = (items[0].json && items[0].json.leads) || [];\nreturn leads.map(l => ({ json: l }));"
+      },
+      "id": "wfc_split",
+      "name": "Split Leads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -160,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const toolsUrl = 'http://localhost:5678/webhook/vapi-tools';\nconst eocUrl = 'http://localhost:5678/webhook/vapi-eoc';\nreturn items.map(it => {\n  const lead = it.json;\n  const vapiPayload = {\n    phoneNumberId: 'REPLACE_WITH_VAPI_NUMBER_ID',\n    assistantId: 'REPLACE_WITH_VAPI_ASSISTANT_ID',\n    customer: { number: lead.phone },\n    assistantOverrides: {\n      serverUrl: eocUrl,\n      variableValues: { firstName: lead.firstName || '', intent: lead.intent || 'follow-up' }\n    },\n    metadata: { contactId: lead.id, toolsUrl }\n  };\n  return { json: { contactId: lead.id, phone: lead.phone, vapiPayload } };\n});"
+      },
+      "id": "wfc_build",
+      "name": "Build Vapi Call",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        60,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:5678/webhook/mock-vapi-call",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.vapiPayload }}",
+        "options": {}
+      },
+      "id": "wfc_call",
+      "name": "Place Call (Mock Vapi)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const builds = $('Build Vapi Call').all();\nconst updates = items.map((it, i) => ({\n  contactId: builds[i].json.contactId,\n  status: 'call_initiated',\n  callId: it.json.id || null\n}));\nreturn [{ json: { op: 'setOutboundStatusBulk', payload: { updates } } }];"
+      },
+      "id": "wfc_mark",
+      "name": "Prep Mark Called",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "SUBghlClient0001",
+          "mode": "id",
+          "cachedResultName": "SUB GHL Client"
+        },
+        "options": {}
+      },
+      "id": "wfc_set",
+      "name": "Mark Called",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { status: 'ok', calls_initiated: $('Build Vapi Call').all().length } }];"
+      },
+      "id": "wfc_done",
+      "name": "Summarize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Run Outbound": {
+      "main": [
+        [
+          {
+            "node": "Prep Get Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Get Leads": {
+      "main": [
+        [
+          {
+            "node": "Get Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Leads": {
+      "main": [
+        [
+          {
+            "node": "Split Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Leads": {
+      "main": [
+        [
+          {
+            "node": "Build Vapi Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Vapi Call": {
+      "main": [
+        [
+          {
+            "node": "Place Call (Mock Vapi)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Place Call (Mock Vapi)": {
+      "main": [
+        [
+          {
+            "node": "Prep Mark Called",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prep Mark Called": {
+      "main": [
+        [
+          {
+            "node": "Mark Called",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark Called": {
+      "main": [
+        [
+          {
+            "node": "Summarize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

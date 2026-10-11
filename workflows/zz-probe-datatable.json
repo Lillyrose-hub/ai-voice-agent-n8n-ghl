@@ -1,0 +1,70 @@
+{
+  "id": "ZZprobeDT000001",
+  "name": "ZZ Probe DataTable",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "POST", "path": "probe-dt", "responseMode": "lastNode", "options": {} },
+      "id": "p_hook", "name": "Probe In", "type": "n8n-nodes-base.webhook", "typeVersion": 2,
+      "position": [-600, 0], "webhookId": "p_hook"
+    },
+    {
+      "parameters": {
+        "resource": "table", "operation": "create", "tableName": "probe_contacts",
+        "columns": { "column": [ { "name": "phone", "type": "string" }, { "name": "cname", "type": "string" }, { "name": "status", "type": "string" } ] },
+        "options": { "createIfNotExists": true }
+      },
+      "id": "p_create", "name": "Create Table", "type": "n8n-nodes-base.dataTable", "typeVersion": 1.1, "position": [-380, 0]
+    },
+    {
+      "parameters": {
+        "resource": "row", "operation": "insert",
+        "dataTableId": { "__rl": true, "mode": "name", "value": "probe_contacts" },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": { "phone": "={{ $('Probe In').item.json.body.phone }}", "cname": "={{ $('Probe In').item.json.body.name }}", "status": "new" },
+          "schema": [
+            { "id": "phone", "displayName": "phone", "type": "string", "canBeUsedToMatch": true, "display": true, "required": false, "defaultMatch": false },
+            { "id": "cname", "displayName": "cname", "type": "string", "canBeUsedToMatch": true, "display": true, "required": false, "defaultMatch": false },
+            { "id": "status", "displayName": "status", "type": "string", "canBeUsedToMatch": true, "display": true, "required": false, "defaultMatch": false }
+          ],
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "id": "p_insert", "name": "Insert Row", "type": "n8n-nodes-base.dataTable", "typeVersion": 1.1, "position": [-160, 0]
+    },
+    {
+      "parameters": {
+        "resource": "row", "operation": "upsert",
+        "dataTableId": { "__rl": true, "mode": "name", "value": "probe_contacts" },
+        "matchType": "allConditions",
+        "filters": { "conditions": [ { "keyName": "phone", "condition": "eq", "keyValue": "={{ $('Probe In').item.json.body.phone }}" } ] },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": { "status": "upserted" },
+          "schema": [ { "id": "status", "displayName": "status", "type": "string", "canBeUsedToMatch": true, "display": true, "required": false, "defaultMatch": false } ],
+          "matchingColumns": [ "phone" ]
+        },
+        "options": {}
+      },
+      "id": "p_upsert", "name": "Upsert Row", "type": "n8n-nodes-base.dataTable", "typeVersion": 1.1, "position": [60, 0]
+    },
+    {
+      "parameters": {
+        "resource": "row", "operation": "get",
+        "dataTableId": { "__rl": true, "mode": "name", "value": "probe_contacts" },
+        "returnAll": true
+      },
+      "id": "p_get", "name": "Get All", "type": "n8n-nodes-base.dataTable", "typeVersion": 1.1, "position": [280, 0]
+    }
+  ],
+  "connections": {
+    "Probe In": { "main": [[{ "node": "Create Table", "type": "main", "index": 0 }]] },
+    "Create Table": { "main": [[{ "node": "Insert Row", "type": "main", "index": 0 }]] },
+    "Insert Row": { "main": [[{ "node": "Upsert Row", "type": "main", "index": 0 }]] },
+    "Upsert Row": { "main": [[{ "node": "Get All", "type": "main", "index": 0 }]] }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}
